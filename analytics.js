@@ -1,0 +1,11 @@
+SF.last7=()=>[...Array(7)].map((_,i)=>SF.day(i-6));
+SF.wk=()=>SF.last7().map(d=>SF.t('d'+new Date(d).getUTCDay()));
+SF.mk=(id,type,labels,data,name)=>{const el=$('#'+id);if(!el||!window.Chart)return;Chart.defaults.color=getComputedStyle(document.documentElement).getPropertyValue('--tx').trim();const dn=type=='doughnut';
+SF.charts.push(new Chart(el,{type,data:{labels,datasets:[{label:name,data,backgroundColor:dn?['#2563EB','#6366F1','#16A34A','#F59E0B','#EF4444','#06B6D4','#8B5CF6','#EC4899','#64748B']:'#2563EB',borderWidth:0,borderRadius:dn?0:6}]},options:{maintainAspectRatio:false,plugins:{legend:{display:dn}},scales:dn?{}:{y:{beginAtZero:true,ticks:{precision:0}}}}}))};
+SF.pages.analytics=r=>{const T=SF.db.tasks,G=SF.db.goals,d=SF.last7(),n=T.filter(x=>x.done).length,sc=SF.subs.filter(s=>T.some(t=>t.sub==s));
+r.innerHTML='<div class="g2">'+['cWeek','cFocus','cRate','cSub','cGoal'].map(k=>`<div class="card"><h3>${SF.t(k)}</h3><div class="cv"><canvas id="${k}"></canvas></div></div>`).join('')+'</div>';
+SF.mk('cWeek','bar',SF.wk(),d.map(x=>T.filter(t=>t.doneAt==x).length),SF.t('done'));
+SF.mk('cFocus','bar',SF.wk(),d.map(x=>SF.db.sessions.filter(s=>s.day==x).reduce((a,s)=>a+s.min,0)),SF.t('min'));
+SF.mk('cRate','doughnut',[SF.t('done'),SF.t('pending')],[n,T.length-n]);
+SF.mk('cSub','doughnut',sc.map(s=>SF.t(s)),sc.map(s=>T.filter(t=>t.sub==s).length));
+SF.mk('cGoal','bar',G.map(g=>g.title),G.map(SF.pct),'%')};

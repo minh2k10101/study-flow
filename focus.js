@@ -1,0 +1,10 @@
+SF.tm={mode:'focus',rem:null,end:0,run:0,iv:0};
+SF.len=()=>SF.db.settings[SF.tm.mode]*60;
+SF.clk=()=>{const e=$('#clock');if(e){const s=SF.tm.rem??SF.len();e.textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}};
+SF.beep=()=>{if(!SF.db.settings.sound)return;try{const a=new AudioContext(),o=a.createOscillator();o.connect(a.destination);o.frequency.value=880;o.start();setTimeout(()=>{o.stop();a.close()},600)}catch{}};
+SF.tick=()=>{const T=SF.tm;T.rem=Math.max(0,Math.round((T.end-Date.now())/1000));SF.clk();if(!T.rem){clearInterval(T.iv);T.run=0;if(T.mode=='focus'){SF.db.sessions.push({day:SF.day(0),min:SF.len()/60});SF.save()}T.rem=null;SF.toast('fin',1);SF.beep();if(location.hash=='#focus')SF.render()}};
+SF.tmGo=()=>{const T=SF.tm;if(T.run){clearInterval(T.iv);T.run=0}else{T.end=Date.now()+(T.rem??SF.len())*1000;T.run=1;T.iv=setInterval(SF.tick,500)}SF.render()};
+SF.tmReset=()=>{clearInterval(SF.tm.iv);SF.tm.run=0;SF.tm.rem=null;SF.render()};
+SF.tmMode=m=>{clearInterval(SF.tm.iv);SF.tm.run=0;SF.tm.rem=null;SF.tm.mode=m;SF.render()};
+SF.pages.focus=r=>{const T=SF.tm,S=SF.db.sessions;
+r.innerHTML=`<div class="card ctr"><div class="seg">${['focus','short','long'].map(m=>`<button class="${T.mode==m?'on':''}" onclick="SF.tmMode('${m}')">${SF.t({focus:'f',short:'s',long:'l'}[m])}</button>`).join('')}</div><div id="clock"></div><div class="row"><button class="pri" onclick="SF.tmGo()">${SF.t(T.run?'pause':T.rem!=null?'resume':'go')}</button><button onclick="SF.tmReset()">${SF.t('reset')}</button></div></div><div class="card"><h3>${SF.t('hist')}</h3>${S.slice(-8).reverse().map(s=>`<div class="item"><span class="gr">${SF.fmt(s.day)}</span><b>${s.min} ${SF.t('min')}</b></div>`).join('')||`<p class="mt">${SF.t('empty')}</p>`}</div>`;SF.clk()};

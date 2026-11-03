@@ -1,0 +1,12 @@
+SF.subs=['math','lit','eng','phy','chem','bio','his','geo','other'];
+SF.so=()=>SF.subs.map(s=>[s,SF.t(s)]);SF.po=()=>['high','med','low'].map(s=>[s,SF.t(s)]);
+SF.dl=d=>{const n=Math.round((new Date(d)-new Date(SF.day(0)))/864e5);return n<0?['over','danger']:n==0?['today','warn']:n<=2?['soon','warn']:['later','ok']};
+SF.tog=id=>{const x=SF.db.tasks.find(t=>t.id==id);x.done=x.done?0:1;x.doneAt=x.done?SF.day(0):null;SF.save();SF.render()};
+SF.rm=(k,id)=>SF.ask(SF.t('sure'),()=>{SF.db[k]=SF.db[k].filter(x=>x.id!=id)});
+SF.taskForm=id=>{const T=SF.db.tasks,o=T.find(x=>x.id==id)||{sub:'math',pri:'med',est:30,due:SF.day(1),title:'',desc:''};
+SF.modal(SF.t(id?'edit':'add'),[{k:'title',r:1},{k:'sub',o:SF.so()},{k:'desc',x:1},{k:'due',y:'date',r:1},{k:'est',y:'number'},{k:'pri',o:SF.po()}],o,d=>{d.est=+d.est||0;if(id)Object.assign(o,d);else T.push({id:Date.now(),done:0,...d})})};
+SF.row=x=>{const [k,c]=SF.dl(x.due);return `<div class="item ${x.done?'dn':''}"><input type="checkbox" ${x.done?'checked':''} onchange="SF.tog(${x.id})"><div class="gr"><b>${SF.esc(x.title)}</b><small>${SF.t(x.sub)} · ${SF.fmt(x.due)} · ${x.est} ${SF.t('min')}</small></div><span class="tag ${x.pri=='high'?'danger':x.pri=='med'?'warn':'ok'}">${SF.t(x.pri)}</span>${x.done?'':`<span class="tag ${c}">${SF.t(k)}</span>`}<button class="ghost" onclick="SF.taskForm(${x.id})">${SF.ico('pencil')}</button><button class="ghost" onclick="SF.rm('tasks',${x.id})">${SF.ico('trash-2')}</button></div>`};
+SF.pages.tasks=r=>{const f=SF.f,L=SF.db.tasks.filter(x=>(!f.q||x.title.toLowerCase().includes(f.q.toLowerCase()))&&(!f.sub||x.sub==f.sub)&&(!f.pri||x.pri==f.pri)&&(!f.st||(f.st=='done')==!!x.done)).sort((a,b)=>a.due<b.due?-1:1),
+sel=(k,o)=>`<select onchange="SF.f.${k}=this.value;SF.render()"><option value="">${SF.t('all')}</option>${o.map(v=>`<option value="${v[0]}" ${f[k]==v[0]?'selected':''}>${v[1]}</option>`).join('')}</select>`;
+r.innerHTML=`<div class="bar"><input id="q" placeholder="${SF.t('search')}" value="${SF.esc(f.q)}">${sel('sub',SF.so())}${sel('st',[['done',SF.t('done')],['pending',SF.t('pending')]])}${sel('pri',SF.po())}<button class="pri" onclick="SF.taskForm()">${SF.ico('plus')}${SF.t('add')}</button></div><div class="card">${L.map(SF.row).join('')||`<p class="mt">${SF.t('empty')}</p>`}</div>`;
+$('#q').oninput=e=>{f.q=e.target.value;SF.render();const q=$('#q');q.focus();q.setSelectionRange(q.value.length,q.value.length)}};
